@@ -1,0 +1,160 @@
+package cs2110;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Scanner;
+import jdk.jshell.spi.ExecutionControl.ClassInstallException;
+
+public class CsvJoin {
+    /**
+     * Load a table from a Simplified CSV file and return a row-major list-of-lists representation.
+     * The CSV file is assumed to be in the platform's default encoding. Throws an IOException if
+     * there is a problem reading the file.
+     */
+    public static Seq<Seq<String>> csvToList(String file) throws IOException {
+        // Create empty linked list for table
+        Seq<Seq<String>> rows = new LinkedSeq<Seq<String>>();
+
+        // Create FileReader to read the CSV file
+        FileReader fileReader = new FileReader(file);
+
+        // Create Scanner to process the data
+        Scanner scanner = new Scanner(fileReader);
+
+        while (scanner.hasNextLine()) {
+           // Read each line
+            String line = scanner.nextLine();
+
+            // Use comma as the delimiter, split the line into strings and store them
+            // in the String[]
+            String[] values = line.split(",", -1);
+
+            // Create an empty linked list row
+            Seq<String> row = new LinkedSeq<>();
+
+            // Loop through the array of String
+            for (String element : values) {
+                // Append each String to the linked list row
+                row.append(element);
+            }
+            // Append the row to the linked list table
+            rows.append(row);
+        }
+        return rows;
+    }
+
+    /**
+     * Return the left outer join of tables `left` and `right`, joined on their first column. Result
+     * will represent a rectangular table, with empty strings filling in any columns from `right`
+     * when there is no match. Requires that `left` and `right` represent rectangular tables with at
+     * least 1 column.
+     */
+    public static Seq<Seq<String>> join(Seq<Seq<String>> left, Seq<Seq<String>> right) {
+        // Assert left and right are rectangles
+        assert isRectangle(left);
+        assert left.get(0).size() >= 1;
+        assert isRectangle(right);
+        assert right.get(0).size() >= 1;
+
+        Seq<Seq<String>> result = new LinkedSeq<Seq<String>>();
+        Seq<Seq<String>> intermediate = new LinkedSeq<Seq<String>>();
+
+        // Get number of columns of right
+        //int s = right.get(0).size();
+
+        for (Seq<String> leftRow : left) {
+            String leftKey = leftRow.get(0).toString();
+            Seq<Seq<String>> matchingRows = new LinkedSeq<Seq<String>>();
+            matchingRows = findMatchingRow(right, leftKey);
+
+            intermediate = concatenate(leftRow, matchingRows);
+            result = concatenateSeq(result,intermediate);// result append intermediate
+        }
+        return result;
+    }
+
+    //checks if every tow have the same number of columns
+    public static boolean isRectangle(Seq<Seq<String>> table)
+    {
+        return (table.get(0).size() == table.get(1).size());
+    }
+
+    //returns the matched right row items if rightKey == leftKey
+    public static Seq<Seq<String>> findMatchingRow(Seq<Seq<String>> right, String leftKey)
+    {
+        Seq<String> row = new LinkedSeq<>();
+        Seq<Seq<String>> ans = new LinkedSeq<>();
+        for(Seq<String> rightRow : right)
+        {
+            String rightKey = rightRow.get(0).toString();
+            if(rightKey.equals(leftKey))
+            {
+                for(int i = 1; i < rightRow.size(); i++)
+                {
+                    row.append(rightRow.get(i));
+                }
+            }
+            ans.append(row);
+
+        }
+        //if leftKey not found in right table, return empty row, which is the same size as a right row
+        if(row.size() == 0)
+        {
+            for(int i = 1; i<right.get(0).size(); i++)
+            {
+                row.append("");
+            }
+            ans.append(row);
+        }
+
+        return ans;
+    }
+
+    //adds the matchingRow's elements into the leftRow
+    public static Seq<Seq<String>> concatenate(Seq<String> leftRow, Seq<Seq<String>> matchingRows)
+    {
+        Seq<Seq<String>> answer = new LinkedSeq<>();
+        Seq<Seq<String>> multipleLeft = new LinkedSeq<>();
+        if(matchingRows.size()==1)
+        {
+            for(int i = 0; i<matchingRows.get(0).size(); i++)
+            {
+                leftRow.append(matchingRows.get(0).get(i));
+            }
+            answer.append(leftRow);
+        }
+        else
+        {
+            multipleLeft = duplicate(leftRow,matchingRows.size());
+            for(int i = 0; i<matchingRows.size(); i++)
+            {
+                for(int j = 0; j<matchingRows.get(i).size(); j++)
+                {
+                    multipleLeft.get(i).append(matchingRows.get(i).get(j));
+                }
+            }
+        }
+        return concatenateSeq(answer,multipleLeft);
+    }
+
+    //duplicates left row by how many matched right rows
+    public static Seq<Seq<String>> duplicate(Seq<String> leftRow, int numOfMatch)
+    {
+        Seq<Seq<String>> returned = new LinkedSeq<>();
+        for(int i = 0; i<numOfMatch; i++)
+        {
+            returned.append(leftRow);
+        }
+        return returned;
+    }
+
+    public static Seq<Seq<String>> concatenateSeq(Seq<Seq<String>> answer, Seq<Seq<String>> lefties)
+    {
+        for(int i = 0; i<lefties.size(); i++)
+        {
+            answer.append(lefties.get(i));
+        }
+        return answer;
+    }
+
+}
